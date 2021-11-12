@@ -1,5 +1,5 @@
 /*
-@author: Oanh Le, <add your names here>
+@author: Oanh Le, Yen Le
 */
 
 #include <cstdlib>
@@ -58,7 +58,31 @@ void toGNF()
 /* function to convert to PDA */
 void toPDA()
 {
-  
+  cout << "(p0,$,z) -> {(p,Sz)}" << endl;
+  for (auto i : rule){
+    map<char, vector<string>> pda;
+
+    for ( string s:i.second ){
+      if (s.size() > 1)
+        pda[s[0]].push_back(s.substr(1, s.size()-1));
+      else
+        pda[s[0]].push_back("$");
+    }
+
+    for (auto j : pda){
+      cout << "(p," << j.first << "," << i.first.second << ") -> {";
+      for (int k = 0; k < j.second.size(); k++){
+        if (k == j.second.size() - 1)
+          cout << "(p, " <<j.second[k] << ")}";
+        else
+          cout << "(p, " << j.second[k] << "),";
+      }
+      cout << endl;
+    }
+
+  }
+  cout << "(p,$,z) -> {(p1,$)}" << endl;
+
 }
 
 /* helper functions */
@@ -221,7 +245,7 @@ int main() {
     }       
   }
 
-  // debug the hashmap 
+  //debug the hashmap
   for(auto i: rule)
   {
     cout << i.first.first << ")" << i.first.second << ": ";
@@ -319,12 +343,17 @@ int main() {
 
     // check if the given CFG is in GNF
     if(GNFcheck())
-      cout << "the grammar is in GNF";
-    else cout << "the grammar is not in GNF";
-
+      cout << "the grammar is in GNF\n";
+    else cout << "the grammar is not in GNF\n";
     // if not, convert to GNF
 
+    cout<<"*-----------------------*"<<endl;
+
     // convert to PDA
+    cout << "To Pushdown Automata (PDA): \n";
+    toPDA();
+    
+    
   }
   return 0;
 }
