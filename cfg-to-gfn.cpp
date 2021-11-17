@@ -8,15 +8,6 @@
 #include <charconv>
 using namespace std;
 
-/* function to convert to GNF */
-void toGNF(){
-  eliminateNull();
-  unitProductions();
-  uselessProductions();
-  allNonTerminal();
-  oneBeginTerminal();
-}
-
 /* funtion to remove null or lambda */
 void eliminateNull(){
   set<char> eliminate;
@@ -261,4 +252,12 @@ void oneBeginTerminal(){
   uselessProductions();
 }
 
+/* function to convert to GNF */
+void toGNF(){
+  eliminateNull();
+  unitProductions();
+  uselessProductions();
+  allNonTerminal();
+  oneBeginTerminal();
+}
 
