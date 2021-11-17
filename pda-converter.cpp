@@ -1,22 +1,17 @@
 /*
-@author: Oanh Le, Yen Le
+@author: Oanh Le, Yen Le, Minh Tran
 */
 
 #include <cstdlib>
 #include <iostream>
 #include <math.h>
-#include <map>
-#include <unordered_map>
 #include <vector>
 #include <string>
 #include <sstream>
-#include <set>
 #include <charconv>
+#include "cfg-to-gfn.cpp"
+#include "header.h"
 using namespace std;
-
-map<char, set <string>> rule;
-set<char> terminal;
-set<char> nonTerminal;
 
 /* function to check if the given grammar is in GNF */
 bool GNFcheck()
@@ -50,197 +45,22 @@ bool GNFcheck()
   return true;
 }
 
-/* funtion to remove null or lambda */
-void eliminateNull(){
-  set<char> eliminate;
-
-  int flag = 0;
-  for (auto i : terminal){
-    if (rule[i].find("$") != rule[i].end()){
-      flag = 1;
-      if (rule[i].size() == 1){
-        eliminate.insert(i);
-        for (auto j : terminal){
-          //replace every terminal except the nullable terminal
-          if (j!=i){
-            set<string> temp;
-            for(auto k : rule[j]){
-              //strcmp(var1, "dev") == 0
-              if (k.size() == 1 && k == to_string(i))
-                k = "$";
-              if (k.size() > 1 && k.find(i)!= string::npos){
-                int ps = k.find(i);
-                k.erase(ps, 1);
-              }
-              temp.insert(k);
-            }
-            rule[j] = temp;
-          }
-        }
-      }
-      else {
-        rule[i].erase("$");
-        for (auto j : terminal){
-          set<string> temp;
-          string s = "";
-          for (auto k : rule[j]){
-            if (k.size() > 1 && k.find(i) != string::npos){
-              s = k;
-              int ps = k.find(i);
-              k.erase(ps,1);
-            }
-            temp.insert(k);
-            if(s!=""){
-              temp.insert(s);
-              s= "";
-            }
-      
-          }
-          rule[j]= temp;
-        }
-      }
-    }
-  }
-
-  for (auto e : eliminate){
-    terminal.erase(e);
-    rule.erase(e);
-  }
-  if (flag==1)
-    eliminateNull();
-}
-
-/* funtion to remove unit production */
-void unitProductions() {
-	int flag;
-	do {
-		flag = 0;
-		for (auto i : terminal) {
-			set<string> temp;
-			for (auto j : rule[i]) {
-				if (j != to_string(i) && terminal.find(j[0])!=terminal.end()) {
-					flag = 1;
-					for (auto k : rule[j[0]])
-						temp.insert(k);
-				}
-				else
-					temp.insert(j);
-			}
-			rule[i] = temp;
-		}
-	} while (flag);
-}
-
-/* funtion to remove useless production */
-void uselessProductions() {
-	set <char> n1;
-	for (auto n : terminal)
-		for (auto p : rule[n]) {
-			int i = 0;
-			while (i < p.size() && terminal.find(p[i]) == terminal.end())
-				i++;
-			if (i == p.size()) {
-				n1.insert(n);
-				break;
-			}
-		}
-	int ok;
-	do {
-		ok = 0;
-		for (auto n : terminal)
-			if (n1.find(n) == n1.end()) {
-				for (auto p : rule[n]) {
-					int i = 0;
-					while (i < p.size() && terminal.find(p[i]) == terminal.end() ||n1.find(p[i]) != n1.end())
-						i++;
-					if (i == p.size()) {
-						n1.insert(n);
-						ok = 1;
-						break;
-					}
-				}
-			}
-	} while (ok);
-
-	//Find symbol that are accessible
-	vector <char> N2;
-	set <char> n2;
-	n2.insert('S');
-	N2.push_back('S');
-	int i = 0;
-	while (i < N2.size()) {
-		char n = N2[i];
-		for (auto p : rule[n]) {
-			for (int j = 0; j < p.size(); j++)
-				if (terminal.find(p[j]) != terminal.end() && n2.find(p[j]) == n2.end()) {
-					n2.insert(p[j]);
-					N2.push_back(p[j]);
-				}
-		}
-		i++;
-	}
-
-	//Find common element in n1
-	set<char>::iterator it = n1.begin();
-	while (it != n1.end()) {
-		if (n2.find(*it) == n2.end()) {
-			terminal.erase(*it);
-			rule.erase(*it);
-			it=n1.erase(it);
-
-		}
-		else{
-			n2.erase(*it);
-			it++;
-		}
-	}
-	for (auto s : n2) {
-		terminal.erase(s);
-		rule.erase(s);
-	}
-		
-	//Delete production that contains non-terminal that are not in terminal set
-	for (auto n : terminal) {
-		set<string> Pn;
-		for (auto p : rule[n]) {
-			int i = 0;
-			while (i < p.size()) {
-				if (p[i] != '$' && nonTerminal.find(p[i]) == nonTerminal.end() && terminal.find(p[i]) == terminal.end())
-					break;
-				i++;
-			}
-			if (i == p.size())
-				Pn.insert(p);
-		}
-		rule[n] = Pn;
-	}
-}
-
-/* function to convert to GNF */
-void toGNF(){
-  eliminateNull();
-  unitProductions();
-  uselessProductions();
-  
-}
 
 /* function to convert to PDA */
 void toPDA()
 {
   cout << "(p0,$,z) -> {(p,Sz)}" << endl;
-
-  for (auto i : terminal){
-    map<char, vector<string>> pda;
-
-    for ( string s:rule[i]){
-      if (s.size() > 1)
-        pda[s[0]].push_back(s.substr(1, s.size()-1));
-      else
-        pda[s[0]].push_back("$");
-    }
-
-    for (auto j : pda){
-      cout << "(p," << j.first << "," << i << ") -> {";
+  
+  // print the start symbol first
+  map<char, vector<string>> pdaS;
+  for (string s:rule['S']){
+    if (s.size() > 1)
+        pdaS[s[0]].push_back(s.substr(1, s.size()-1));
+    else
+        pdaS[s[0]].push_back("$");
+  }
+  for (auto j : pdaS){
+      cout << "(p," << j.first << ",S) -> {";
       for (int k = 0; k < j.second.size(); k++){
         if (k == j.second.size() - 1)
           cout << "(p, " <<j.second[k] << ")}";
@@ -248,11 +68,32 @@ void toPDA()
           cout << "(p, " << j.second[k] << "),";
       }
       cout << endl;
-    }
+  }
 
+  //print the rest
+  for (auto i : nonTerminal){
+    if (i!='S'){
+      map<char, vector<string>> pda;
+      for ( string s:rule[i]){
+        if (s.size() > 1)
+          pda[s[0]].push_back(s.substr(1, s.size()-1));
+        else
+          pda[s[0]].push_back("$");
+      }
+
+      for (auto j : pda){
+        cout << "(p," << j.first << "," << i << ") -> {";
+        for (int k = 0; k < j.second.size(); k++){
+          if (k == j.second.size() - 1)
+            cout << "(p, " <<j.second[k] << ")}";
+          else
+            cout << "(p, " << j.second[k] << "),";
+        }
+        cout << endl;
+      }
+    }
   }
   cout << "(p,$,z) -> {(p1,$)}" << endl;
-
 }
 
 /* helper functions */
@@ -417,24 +258,13 @@ int main() {
   }
 
   //debug the hashmap
-  // for(auto i: rule)
-  // {
-  //   cout << i.first.first << ")" << i.first.second << ": ";
-  //   for(auto j : i.second)
-  //   {
-  //     cout << j << ", ";
+  // for (auto i : rule){
+  //   cout << i.first << " -> ";
+  //   for (auto s : i.second)
+  //     cout << s << ", ";
+  //     cout << endl;
   //   }
-  //   cout << endl;
   // }
-
-    //test
-    for (auto i : rule){
-      cout << i.first << " -> ";
-      for (auto s : i.second)
-        cout << s << ", ";
-      cout << endl;
-    }
-
   // check if the input is missing any rule
   // ex. S->abAB,A->aAB|$. (missing rule B)
   string see1="";
@@ -514,51 +344,43 @@ int main() {
     x=1;
   }
   cout<<"*-----------------------*"<<endl;
-  //insert terminal to set<char> terminal
+
+  // insert nonterminal 
   for (auto i : rule){
-    terminal.insert(i.first);
+    nonTerminal.insert(i.first);
   }
-  //insert nonterminal
-  for (auto i : terminal){
+  
+  // insert terminal
+  for (auto i : nonTerminal){
     for (auto j : rule[i]){
       for (auto k : j){
-        if (islower(k) && nonTerminal.find(k)==nonTerminal.end())
-          nonTerminal.insert(k);
+        if (islower(k) && terminal.find(k)==terminal.end())
+          terminal.insert(k);
       }
     }
-  }
-  //debug nonterminal
-  cout << "\nNonTerminal\n";
-  for (auto n: nonTerminal){
-    cout << n << " ";
-  }
-  /* start converting */                         
+  }                         
   if(x==0 && z==0)
   {
-    cout << "To Greibach normal form (GNF): ";
 
     // check if the given CFG is in GNF
     if(GNFcheck())
-      cout << "the grammar is in GNF\n";
+      cout << "The grammar is in GNF\n";
     else {
-      cout << "the grammar is not in GNF\n";
+      cout << "The grammar is not in GNF\nConverting~\n";
       // convert to GNF
       toGNF();
+      cout << "To Greibach normal form (GNF):\n";
+      for (auto i : rule){
+        cout << i.first << " -> ";
+        for (string s : i.second)
+          cout << s << ", ";
+        cout << endl;
+      }
     }
-
-
     cout<<"*-----------------------*"<<endl;
     // convert to PDA
     cout << "To Pushdown Automata (PDA): \n";
     toPDA();
-
-    //test
-    for (auto i : rule){
-      cout << i.first << " -> ";
-      for (string s : i.second)
-        cout << s << ", ";
-      cout << endl;
-    }
     
   }
   return 0;
