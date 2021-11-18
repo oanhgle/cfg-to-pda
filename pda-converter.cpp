@@ -9,7 +9,7 @@
 #include <string>
 #include <sstream>
 #include <charconv>
-#include "cfg-to-gfn.cpp"
+#include "cfg-to-gnf.cpp"
 #include "header.h"
 using namespace std;
 
